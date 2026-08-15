@@ -219,8 +219,6 @@ export interface ChatMessageData {
   is_streaming?: boolean;
 }
 
-export type PromptMode = 'chat_short' | 'pitch_deck' | 'pitch_deck_json';
-
 export interface StructuredResponse {
   summary: string;
   metrics?: ResponseMetric[];

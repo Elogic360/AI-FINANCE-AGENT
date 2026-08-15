@@ -127,11 +127,8 @@ TOP EXPENSE CATEGORIES:"""
     return ctx
 
 
-def _resolve_prompt_mode(message: str, prompt_mode: str | None = None) -> str:
-    """Infer prompt mode from the user message when the frontend does not send one."""
-    if prompt_mode and prompt_mode != "chat_short":
-        return prompt_mode
-
+def _resolve_prompt_mode(message: str) -> str:
+    """Infer prompt mode from the user message."""
     msg = message.lower()
     if any(phrase in msg for phrase in ["json pitch deck", "pitch deck json", "pitch deck as json", "structured json"]):
         return "pitch_deck_json"
@@ -245,7 +242,7 @@ async def chat_with_ai(
 ):
     """Stream a conversation with the AI CFO via Server-Sent Events."""
     conversation_id = body.conversation_id or uuid.uuid4()
-    resolved_mode = _resolve_prompt_mode(body.message, body.prompt_mode)
+    resolved_mode = _resolve_prompt_mode(body.message)
 
     # Build business context from database
     business_context = await _build_business_context(db, current_user.business_id)

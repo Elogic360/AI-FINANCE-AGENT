@@ -58,27 +58,6 @@ export default function AICFOPage() {
     }
   }, [input]);
 
-  const inferPromptMode = (message: string) => {
-    const msg = message.toLowerCase();
-    if (
-      msg.includes('pitch deck json') ||
-      msg.includes('json pitch deck') ||
-      msg.includes('pitch deck as json') ||
-      msg.includes('structured json')
-    ) {
-      return 'pitch_deck_json' as const;
-    }
-    if (
-      msg.includes('pitch deck') ||
-      msg.includes('pitchdeck') ||
-      msg.includes('investor deck') ||
-      msg.includes('deck for investors')
-    ) {
-      return 'pitch_deck' as const;
-    }
-    return 'chat_short' as const;
-  };
-
   const handleSend = useCallback(async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || isStreaming) return;
@@ -96,11 +75,9 @@ export default function AICFOPage() {
     setStreamingContent('');
 
     const streamingMsgId = crypto.randomUUID();
-    const promptMode = inferPromptMode(msg);
 
     abortRef.current = streamChatMessage(
       msg,
-      promptMode,
       // onChunk
       (chunk) => {
         setStreamingContent((prev) => prev + chunk);
@@ -121,7 +98,7 @@ export default function AICFOPage() {
       // onError
       (err) => {
         // Fallback to non-streaming API
-        sendChatMessage(msg, promptMode)
+        sendChatMessage(msg)
           .then((res) => {
             setMessages((prev) => [
               ...prev,

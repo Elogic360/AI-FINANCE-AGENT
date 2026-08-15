@@ -9,7 +9,6 @@ import type {
   SuggestedQuestion,
   PnLData,
   BalanceSheetData,
-  PromptMode,
 } from '../types';
 
 // ─── FastAPI / Pydantic v2 error types ───────────────────────────────────────
@@ -192,8 +191,8 @@ export async function fetchSuggestedQuestions(): Promise<SuggestedQuestion[]> {
   });
 }
 
-export async function sendChatMessage(message: string, promptMode: PromptMode = 'chat_short'): Promise<ChatMessageData> {
-  const res = await api.post('/ai/chat', { message, prompt_mode: promptMode });
+export async function sendChatMessage(message: string): Promise<ChatMessageData> {
+  const res = await api.post('/ai/chat', { message });
   return res.data;
 }
 
@@ -203,7 +202,6 @@ export async function sendChatMessage(message: string, promptMode: PromptMode = 
  */
 export function streamChatMessage(
   message: string,
-  promptMode: PromptMode,
   onChunk: (chunk: string) => void,
   onComplete: (response: ChatMessageData) => void,
   onError: (err: Error) => void,
@@ -219,7 +217,7 @@ export function streamChatMessage(
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message, prompt_mode: promptMode }),
+        body: JSON.stringify({ message }),
         signal: controller.signal,
       });
 
