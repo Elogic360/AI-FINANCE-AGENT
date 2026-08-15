@@ -1,13 +1,14 @@
 """Dashboard routes — health score and summary."""
 
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.models.accounting import Transaction, JournalEntry, ChartOfAccounts
+from app.models.accounting import Transaction, JournalEntry, JournalLine, ChartOfAccounts
 from app.models.document import Document
 from app.models.contacts import Invoice, Bill
 from app.models.ai import Alert
@@ -125,21 +126,29 @@ async def get_summary(
         .where(Transaction.business_id == bid, Transaction.status == "pending")
     )).scalar() or 0
 
-    # Revenue
+    # Revenue — sum credits on revenue accounts from approved journal lines
     total_revenue = (await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount), 0))
-        .select_from(Transaction)
-        .join(ChartOfAccounts, ChartOfAccounts.business_id == Transaction.business_id, isouter=True)
-        .where(Transaction.business_id == bid, ChartOfAccounts.account_type == "revenue")
-    )).scalar() or 0
+        select(func.coalesce(func.sum(JournalLine.credit - JournalLine.debit), Decimal("0")))
+        .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+        .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+        .where(
+            ChartOfAccounts.business_id == bid,
+            ChartOfAccounts.account_type == "revenue",
+            JournalEntry.is_draft.is_(False),
+        )
+    )).scalar() or Decimal("0")
 
-    # Expenses
+    # Expenses — sum debits on expense accounts from approved journal lines
     total_expenses = (await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount), 0))
-        .select_from(Transaction)
-        .join(ChartOfAccounts, ChartOfAccounts.business_id == Transaction.business_id, isouter=True)
-        .where(Transaction.business_id == bid, ChartOfAccounts.account_type == "expense")
-    )).scalar() or 0
+        select(func.coalesce(func.sum(JournalLine.debit - JournalLine.credit), Decimal("0")))
+        .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+        .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+        .where(
+            ChartOfAccounts.business_id == bid,
+            ChartOfAccounts.account_type == "expense",
+            JournalEntry.is_draft.is_(False),
+        )
+    )).scalar() or Decimal("0")
 
     # Invoices
     pending_invoices = (await db.execute(
@@ -173,6 +182,12 @@ async def get_summary(
         .select_from(Alert)
         .where(Alert.business_id == bid, Alert.acknowledged == False)
     )).scalar() or 0
+
+    # Ensure Decimal types for monetary fields
+    total_revenue = Decimal(str(total_revenue)) if not isinstance(total_revenue, Decimal) else total_revenue
+    total_expenses = Decimal(str(total_expenses)) if not isinstance(total_expenses, Decimal) else total_expenses
+    accounts_receivable = Decimal(str(accounts_receivable)) if not isinstance(accounts_receivable, Decimal) else accounts_receivable
+    accounts_payable = Decimal(str(accounts_payable)) if not isinstance(accounts_payable, Decimal) else accounts_payable
 
     return DashboardSummaryResponse(
         currency="TZS",

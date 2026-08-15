@@ -9,6 +9,9 @@ import JournalPage from '../pages/JournalPage';
 import ReportsPage from '../pages/ReportsPage';
 import DocumentsPage from '../pages/DocumentsPage';
 import SettingsPage from '../pages/SettingsPage';
+import InvoicesPage from '../pages/InvoicesPage';
+import ExpensesPage from '../pages/ExpensesPage';
+import AICFOPage from '../pages/AICFOPage';
 
 function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -34,8 +37,11 @@ export const router = createBrowserRouter([
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/transactions', element: <TransactionsPage /> },
       { path: '/journal', element: <JournalPage /> },
+      { path: '/invoices', element: <InvoicesPage /> },
+      { path: '/expenses', element: <ExpensesPage /> },
       { path: '/reports', element: <ReportsPage /> },
       { path: '/documents', element: <DocumentsPage /> },
+      { path: '/ai-cfo', element: <AICFOPage /> },
       { path: '/settings', element: <SettingsPage /> },
     ],
   },

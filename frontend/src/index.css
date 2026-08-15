@@ -16,8 +16,220 @@
   --success: #22c55e;
 }
 
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Custom Scrollbar ─────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 140, 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 140, 0.3);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 140, 0.5);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* ─── TZS Currency Formatting ──────────────────────────────────────────────── */
+
+.tzs-amount {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.tzs-amount::before {
+  content: 'TZS ';
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+/* ─── Focus Styles ─────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+}
+
+/* ─── Table Row Hover ──────────────────────────────────────────────────────── */
+
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ─── Card Hover ───────────────────────────────────────────────────────────── */
+
+.card-hover {
+  transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+  border-color: rgba(100, 100, 140, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Print Styles ─────────────────────────────────────────────────────────── */
+
+@media print {
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 11pt;
+  }
+
+  /* Hide non-essential UI */
+  aside,
+  header,
+  nav,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* Reset main content */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Table styles for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #ddd !important;
+    padding: 6px 8px !important;
+    background: white !important;
+    color: #1a1a1a !important;
+  }
+
+  table th {
+    background: #f5f5f5 !important;
+    font-weight: 600 !important;
+  }
+
+  /* Card styles for print */
+  .bg-\[#1a1a2e\] {
+    background: white !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Ensure colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Print header for reports */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+}
+
+/* ─── Utility Classes ──────────────────────────────────────────────────────── */
+
+.glass {
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

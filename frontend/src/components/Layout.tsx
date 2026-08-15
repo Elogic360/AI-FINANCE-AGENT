@@ -1,14 +1,17 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Receipt, BookOpen, FileText, Upload, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Receipt, BookOpen, FileText, Upload, Settings, LogOut, Menu, X, CreditCard, Wallet, Bot } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/transactions', icon: Receipt, label: 'Transactions' },
   { to: '/journal', icon: BookOpen, label: 'Journal' },
+  { to: '/invoices', icon: CreditCard, label: 'Invoices' },
+  { to: '/expenses', icon: Wallet, label: 'Expenses' },
   { to: '/reports', icon: FileText, label: 'Reports' },
   { to: '/documents', icon: Upload, label: 'Documents' },
+  { to: '/ai-cfo', icon: Bot, label: 'AI CFO' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -35,7 +38,7 @@ export default function Layout() {
           </div>
           <button className="lg:hidden text-gray-400" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map(item => (
             <NavLink key={item.to} to={item.to} onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`}>

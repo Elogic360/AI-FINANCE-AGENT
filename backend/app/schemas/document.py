@@ -2,7 +2,8 @@
 
 import uuid
 from datetime import datetime
-from decimal import Decimal
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -28,3 +29,20 @@ class DocumentResponse(BaseModel):
     parsed_by: str | None
     parse_status: str
     uploaded_at: datetime
+
+
+class DocumentListResponse(BaseModel):
+    """Paginated document list."""
+    items: list[DocumentResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class DocumentAnalysisResponse(BaseModel):
+    """Response after triggering document analysis."""
+    document_id: uuid.UUID
+    parse_status: str
+    parsed_by: str | None
+    summary: str
+    extracted_records_count: int

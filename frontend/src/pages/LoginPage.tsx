@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { extractErrorMessage } from '../lib/api';
 import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
@@ -18,8 +19,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { CheckCircle, Clock } from 'lucide-react';
-import type { JournalEntry } from '../types';
+import type { JournalEntry, PaginatedResponse } from '../types';
 
 export default function JournalPage() {
   const queryClient = useQueryClient();
-  const { data: entries } = useQuery<JournalEntry[]>({ queryKey: ['journal'], queryFn: () => api.get('/journal-entries').then(r => r.data) });
+  const { data: journalData, isLoading } = useQuery<PaginatedResponse<JournalEntry>>({ queryKey: ['journal'], queryFn: () => api.get('/journal-entries').then(r => r.data) });
+  const entries = journalData?.items;
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/journal-entries/${id}/approve`),
@@ -28,7 +29,9 @@ export default function JournalPage() {
             </tr>
           </thead>
           <tbody>
-            {entries?.map((entry: any) => (
+            {isLoading ? (
+              <tr><td colSpan={5} className="px-4 py-12 text-center text-gray-500 animate-pulse">Loading journal entries...</td></tr>
+            ) : entries?.map((entry) => (
               <tr key={entry.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                 <td className="px-4 py-3 text-gray-300">{entry.entry_date}</td>
                 <td className="px-4 py-3 text-white">{entry.memo || '—'}</td>

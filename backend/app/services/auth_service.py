@@ -105,9 +105,6 @@ async def register_user(
     db.add(user)
     await db.flush()
 
-    # Commit the transaction
-    await db.commit()
-
     # Generate tokens
     access_token = create_token(user.id, "access")
     refresh_token = create_token(user.id, "refresh")
@@ -147,7 +144,11 @@ async def login_user(
     }
 
 
-async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> Optional[User]:
-    """Return the user record or None."""
+async def get_user_by_id(db: AsyncSession, user_id: str | uuid.UUID) -> Optional[User]:
+    """Return the user record or None.
+
+    *user_id* may be a ``str`` (from a JWT ``sub`` claim) or a ``uuid.UUID``.
+    SQLAlchemy auto-coerces the string to UUID for the WHERE clause.
+    """
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()

@@ -1,41 +1,93 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  # ─── PostgreSQL ───────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: finpilot
       POSTGRES_USER: finpilot
-      POSTGRES_PASSWORD: finpilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finpilot}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finpilot -d finpilot"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - finpilot-net
 
+  # ─── Redis ────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - finpilot-net
 
+  # ─── Backend (FastAPI) ────────────────────────────────────────
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://finpilot:finpilot@postgres:5432/finpilot
+      DATABASE_URL: postgresql+asyncpg://finpilot:${POSTGRES_PASSWORD:-finpilot}@postgres:5432/finpilot
       REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production-use-35-plus-chars}
+      CORS_ORIGINS: http://localhost:5173
+      PAWA_API_KEY: ${PAWA_API_KEY:-}
+      PAWA_API_URL: ${PAWA_API_URL:-https://api.pawa.ai}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-finpilot-documents}
+    volumes:
+      - ./backend/app:/app/app
     depends_on:
-      - postgres
-      - redis
-    env_file:
-      - .env
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - finpilot-net
 
+  # ─── Frontend (Vite dev server) ───────────────────────────────
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
     depends_on:
       - backend
+    networks:
+      - finpilot-net
+
+networks:
+  finpilot-net:
+    driver: bridge
 
 volumes:
   pgdata:
+  redisdata:

@@ -1,0 +1,84 @@
+"""AI chat & analysis schemas for FinPilot AI."""
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+# ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+
+class ChatMessage(BaseModel):
+    """A single chat message."""
+    role: str = Field(..., pattern="^(user|assistant|system)$")
+    content: str
+
+
+class ChatRequest(BaseModel):
+    """Request body for the AI CFO chat endpoint."""
+    message: str = Field(..., min_length=1, max_length=4000)
+    conversation_id: Optional[uuid.UUID] = None
+
+
+class ChatChunk(BaseModel):
+    """One SSE chunk streamed back to the client."""
+    event: str = Field(default="message")  # message | done | error
+    data: str
+
+
+class ConversationSummary(BaseModel):
+    """Lightweight conversation listing item."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    message_count: int
+    last_message_at: datetime
+    created_at: datetime
+
+
+class ConversationDetail(BaseModel):
+    """Full conversation with messages."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    title: str
+    messages: list[ChatMessage]
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Document analysis
+# ---------------------------------------------------------------------------
+
+class AnalyzeRequest(BaseModel):
+    """Trigger analysis on an uploaded document."""
+    document_id: uuid.UUID
+    question: Optional[str] = None
+
+
+class AnalyzeResponse(BaseModel):
+    """Result of document analysis."""
+    document_id: uuid.UUID
+    summary: str
+    extracted_data: dict
+    confidence: Decimal
+    suggestions: list[str]
+
+
+# ---------------------------------------------------------------------------
+# Suggestions
+# ---------------------------------------------------------------------------
+
+class SuggestRequest(BaseModel):
+    """Request for suggested questions."""
+    context: Optional[str] = None  # e.g. "dashboard", "documents", "reports"
+
+
+class SuggestResponse(BaseModel):
+    """Suggested questions for the user."""
+    questions: list[str]

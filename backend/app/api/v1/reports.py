@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -14,6 +15,7 @@ from app.schemas.reports import (
     PnLResponse,
     BalanceSheetResponse,
     CashFlowResponse,
+    AccountBalance,
 )
 from app.services.reports_service import (
     get_profit_loss,
@@ -31,15 +33,15 @@ class TrialBalanceAccount(BaseModel):
     account_code: str
     account_name: str
     account_type: str
-    debit_total: float
-    credit_total: float
+    debit_total: Decimal
+    credit_total: Decimal
 
 
 class TrialBalanceReportResponse(BaseModel):
     as_of_date: Optional[str]
     accounts: list[TrialBalanceAccount]
-    total_debits: float
-    total_credits: float
+    total_debits: Decimal
+    total_credits: Decimal
     balanced: bool
 
 
@@ -67,28 +69,28 @@ async def get_pnl_report(
         period_end=str(data["period"]["end"]),
         currency="TZS",
         revenue=[
-            {
-                "account_id": item["account_id"],
-                "account_code": item["code"],
-                "account_name": item["name"],
-                "account_type": "revenue",
-                "debit_total": 0,
-                "credit_total": item["amount"],
-                "balance": item["amount"],
-            }
+            AccountBalance(
+                account_id=item["account_id"],
+                account_code=item["code"],
+                account_name=item["name"],
+                account_type="revenue",
+                debit_total=Decimal("0"),
+                credit_total=item["amount"],
+                balance=item["amount"],
+            )
             for item in data["revenue_items"]
         ],
         total_revenue=data["revenue"],
         expenses=[
-            {
-                "account_id": item["account_id"],
-                "account_code": item["code"],
-                "account_name": item["name"],
-                "account_type": "expense",
-                "debit_total": item["amount"],
-                "credit_total": 0,
-                "balance": item["amount"],
-            }
+            AccountBalance(
+                account_id=item["account_id"],
+                account_code=item["code"],
+                account_name=item["name"],
+                account_type="expense",
+                debit_total=item["amount"],
+                credit_total=Decimal("0"),
+                balance=item["amount"],
+            )
             for item in data["expense_items"]
         ],
         total_expenses=data["cost_of_goods_sold"] + data["operating_expenses"],
@@ -113,28 +115,28 @@ async def get_balance_sheet_report(
         db=db,
     )
 
-    def _format_items(items: list[dict]) -> list[dict]:
+    def _format_items(items: list[dict], acct_type: str) -> list[AccountBalance]:
         return [
-            {
-                "account_id": item["account_id"],
-                "account_code": item["code"],
-                "account_name": item["name"],
-                "account_type": "",
-                "debit_total": item["balance"] if item["balance"] > 0 else 0,
-                "credit_total": abs(item["balance"]) if item["balance"] < 0 else 0,
-                "balance": item["balance"],
-            }
+            AccountBalance(
+                account_id=item["account_id"],
+                account_code=item["code"],
+                account_name=item["name"],
+                account_type=acct_type,
+                debit_total=item["balance"] if item["balance"] > 0 else Decimal("0"),
+                credit_total=abs(item["balance"]) if item["balance"] < 0 else Decimal("0"),
+                balance=item["balance"],
+            )
             for item in items
         ]
 
     return BalanceSheetResponse(
         as_of_date=str(data["as_of_date"]),
         currency="TZS",
-        assets=_format_items(data["assets"]),
+        assets=_format_items(data["assets"], "asset"),
         total_assets=data["total_assets"],
-        liabilities=_format_items(data["liabilities"]),
+        liabilities=_format_items(data["liabilities"], "liability"),
         total_liabilities=data["total_liabilities"],
-        equity=_format_items(data["equity"]),
+        equity=_format_items(data["equity"], "equity"),
         total_equity=data["total_equity"],
     )
 
@@ -158,15 +160,52 @@ async def get_cash_flow_report(
         db=db,
     )
 
+    operating_items = [
+        AccountBalance(
+            account_id=uuid.UUID(int=0),  # synthetic — no single account
+            account_code="OP",
+            account_name=item["type"],
+            account_type="revenue" if "inflow" in item["type"] else "expense",
+            debit_total=item["amount"] if item["amount"] > 0 else Decimal("0"),
+            credit_total=abs(item["amount"]) if item["amount"] < 0 else Decimal("0"),
+            balance=item["amount"],
+        )
+        for item in data["details"]["operating"]
+    ]
+    investing_items = [
+        AccountBalance(
+            account_id=item.get("account_id", uuid.UUID(int=0)),
+            account_code="INV",
+            account_name=item["name"],
+            account_type="asset",
+            debit_total=item["amount"] if item["amount"] > 0 else Decimal("0"),
+            credit_total=abs(item["amount"]) if item["amount"] < 0 else Decimal("0"),
+            balance=item["amount"],
+        )
+        for item in data["details"]["investing"]
+    ]
+    financing_items = [
+        AccountBalance(
+            account_id=item.get("account_id", uuid.UUID(int=0)),
+            account_code="FIN",
+            account_name=item["name"],
+            account_type="liability",
+            debit_total=item["amount"] if item["amount"] > 0 else Decimal("0"),
+            credit_total=abs(item["amount"]) if item["amount"] < 0 else Decimal("0"),
+            balance=item["amount"],
+        )
+        for item in data["details"]["financing"]
+    ]
+
     return CashFlowResponse(
         period_start=str(data["period"]["start"]),
         period_end=str(data["period"]["end"]),
         currency="TZS",
-        operating=[],
+        operating=operating_items,
         total_operating=data["operating_activities"],
-        investing=[],
+        investing=investing_items,
         total_investing=data["investing_activities"],
-        financing=[],
+        financing=financing_items,
         total_financing=data["financing_activities"],
         net_cash_change=data["net_cash_flow"],
     )
@@ -197,12 +236,12 @@ async def get_trial_balance_report(
                 account_code=acct["code"],
                 account_name=acct["name"],
                 account_type=acct["account_type"],
-                debit_total=float(acct["debit_total"]),
-                credit_total=float(acct["credit_total"]),
+                debit_total=acct["debit_total"],
+                credit_total=acct["credit_total"],
             )
             for acct in data["accounts"]
         ],
-        total_debits=float(data["total_debits"]),
-        total_credits=float(data["total_credits"]),
+        total_debits=data["total_debits"],
+        total_credits=data["total_credits"],
         balanced=data["balanced"],
     )

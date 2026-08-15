@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { extractErrorMessage } from '../lib/api';
 import { UserPlus } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -19,8 +20,8 @@ export default function RegisterPage() {
     try {
       await register(email, password, businessName);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed');
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
