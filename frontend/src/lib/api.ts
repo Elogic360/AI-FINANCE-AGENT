@@ -139,7 +139,11 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('finpilot_token');
-      window.location.href = '/login';
+      // Avoid redirect loop: only navigate if not already on a public route
+      const path = window.location.pathname;
+      if (path !== '/login' && path !== '/register') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   }
@@ -176,12 +180,12 @@ export async function fetchAlerts(): Promise<Alert[]> {
 // ─── AI CFO ─────────────────────────────────────────────────────────────────
 
 export async function fetchSuggestedQuestions(): Promise<SuggestedQuestion[]> {
-  const res = await api.get('/ai-cfo/suggested-questions');
-  return res.data;
+  const res = await api.post('/ai/suggest', {});
+  return res.data.questions ?? res.data;
 }
 
 export async function sendChatMessage(message: string): Promise<ChatMessageData> {
-  const res = await api.post('/ai-cfo/chat', { message });
+  const res = await api.post('/ai/chat', { message });
   return res.data;
 }
 
@@ -200,7 +204,7 @@ export function streamChatMessage(
 
   (async () => {
     try {
-      const res = await fetch('/api/v1/ai-cfo/chat/stream', {
+      const res = await fetch('/api/v1/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
