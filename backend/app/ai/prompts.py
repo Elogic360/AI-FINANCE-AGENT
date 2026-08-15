@@ -67,8 +67,11 @@ def build_prompt_bundle(
     mode: PromptMode,
     business_context: str,
     user_message: str,
+    answer_directive: str | None = None,
 ) -> tuple[str, str]:
     """Build the system prompt and the Gemini-style full prompt."""
     system_prompt = build_system_prompt(mode)
+    if answer_directive:
+        system_prompt = f"{system_prompt}\n\n{answer_directive}"
     full_prompt = f"{system_prompt}\n\n{business_context}\n\nUser question: {user_message}"
     return system_prompt, full_prompt

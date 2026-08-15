@@ -191,11 +191,6 @@ export async function fetchSuggestedQuestions(): Promise<SuggestedQuestion[]> {
   });
 }
 
-export async function sendChatMessage(message: string): Promise<ChatMessageData> {
-  const res = await api.post('/ai/chat', { message });
-  return res.data;
-}
-
 /**
  * Stream an AI CFO response via SSE. Calls `onChunk` for each text chunk
  * and `onComplete` with the full structured response when done.

@@ -104,14 +104,25 @@ async def _build_business_context(db: AsyncSession, business_id) -> str:
         .limit(10)
     )).all()
 
+    # Additional dashboard-style snapshot for cash survival questions
+    pending_invoices = (await db.execute(
+        select(func.count())
+        .select_from(Invoice)
+        .where(Invoice.business_id == business_id, Invoice.status == "unpaid")
+    )).scalar() or 0
+
+    cash_balance = float(rev) - float(exp)
+
     net_income = float(rev) - float(exp)
 
     ctx = f"""BUSINESS FINANCIAL DATA:
 - Total Revenue: TZS {float(rev):,.2f}
 - Total Expenses: TZS {float(exp):,.2f}
 - Net Income: TZS {net_income:,.2f}
+- Cash Balance Estimate: TZS {cash_balance:,.2f}
 - Total Transactions: {txn_count}
 - Total Invoices: {inv_total} ({inv_overdue} overdue, {inv_unpaid} unpaid)
+- Pending Invoices: {pending_invoices}
 - Accounts Receivable: TZS {float(ar_total):,.2f}
 - Customers: {cust_count}
 - Active Alerts: {alert_count}
@@ -137,6 +148,25 @@ def _resolve_prompt_mode(message: str) -> str:
     return "chat_short"
 
 
+def _build_answer_directive(message: str) -> str:
+    """Add a narrow instruction for the model based on the user's request."""
+    msg = message.lower()
+    if any(phrase in msg for phrase in ["cash flow", "cashflow", "survival", "run out", "future", "direction"]):
+        return (
+            "Focus on cash-flow survival. Explain whether the business is trending toward stability, pressure, or risk. "
+            "Include a near-term outlook, the main driver of risk, and the single highest-impact action."
+        )
+    if any(phrase in msg for phrase in ["profit", "loss", "margin"]):
+        return (
+            "Focus on profitability and margin direction. Explain the likely trend and what is driving it."
+        )
+    if any(phrase in msg for phrase in ["invoice", "receivable", "overdue"]):
+        return (
+            "Focus on collections, overdue invoices, and how they affect cash availability."
+        )
+    return "Answer the user's question directly using the business data."
+
+
 def _sse_chunk(text: str, event: str = "message") -> str:
     return f"data: {ChatChunk(event=event, data=text).model_dump_json()}\n\n"
 
@@ -145,6 +175,8 @@ async def _stream_gemini(full_prompt: str, prompt_mode: str, conversation_id: st
     """Stream a response from Gemini using the official SSE endpoint."""
     if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY == "your-gemini-api-key":
         return
+
+    yield _sse_chunk(json.dumps({"provider": "gemini", "mode": prompt_mode, "live": True}), "meta")
 
     generation_config: dict[str, object] = {
         "temperature": 0.7,
@@ -203,6 +235,8 @@ async def _stream_pawa(
     if not settings.PAWA_API_KEY or settings.PAWA_API_KEY == "your-pawa-api-key":
         return
 
+    yield _sse_chunk(json.dumps({"provider": "pawa", "mode": "chat_short", "live": True}), "meta")
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.PAWA_API_URL}/v1/chat",
@@ -246,11 +280,13 @@ async def chat_with_ai(
 
     # Build business context from database
     business_context = await _build_business_context(db, current_user.business_id)
+    answer_directive = _build_answer_directive(body.message)
 
     system_prompt, full_prompt = build_prompt_bundle(
         resolved_mode,
         business_context,
         body.message,
+        answer_directive,
     )
 
     async def event_stream():

@@ -11,7 +11,6 @@ import { useQuery } from '@tanstack/react-query';
 import ChatMessage from '../components/ChatMessage';
 import {
   fetchSuggestedQuestions,
-  sendChatMessage,
   streamChatMessage,
   extractErrorMessage,
 } from '../lib/api';
@@ -97,30 +96,18 @@ export default function AICFOPage() {
       },
       // onError
       (err) => {
-        // Fallback to non-streaming API
-        sendChatMessage(msg)
-          .then((res) => {
-            setMessages((prev) => [
-              ...prev,
-              { ...res, id: streamingMsgId, role: 'assistant', timestamp: new Date().toISOString() },
-            ]);
-          })
-          .catch(() => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: streamingMsgId,
-                role: 'assistant',
-                content: `Sorry, I encountered an error: ${extractErrorMessage(err)}. Please try again.`,
-                timestamp: new Date().toISOString(),
-              },
-            ]);
-          })
-          .finally(() => {
-            setStreamingContent('');
-            setIsStreaming(false);
-            abortRef.current = null;
-          });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: streamingMsgId,
+            role: 'assistant',
+            content: `Live AI stream unavailable: ${extractErrorMessage(err)}.`,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+        setStreamingContent('');
+        setIsStreaming(false);
+        abortRef.current = null;
       },
     );
   }, [input, isStreaming]);
