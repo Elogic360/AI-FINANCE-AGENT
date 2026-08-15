@@ -1,0 +1,82 @@
+txn_date,description,amount,currency,counterparty,ai_category,source,status
+2026-07-01,Rent - Kariakoo shop July,850000,TZS,Landlord Mzee Hamisi,rent,manual,posted
+2026-07-02,Wholesale kangas 50 pcs,1250000,TZS,Kariakoo Textiles Ltd,cogs,manual,posted
+2026-07-03,Sale - vitenge 12 pcs to Mama Njeri,360000,TZS,Anna Mwangi,sales,manual,posted
+2026-07-04,TANESCO electricity bill,128000,TZS,TANESCO,utilities,manual,posted
+2026-07-05,Sale - men shirts 20 pcs,500000,TZS,Benson Ochieng,sales,manual,posted
+2026-07-07,DAWASCO water bill,45000,TZS,DAWASCO,utilities,manual,posted
+2026-07-08,Wholesale khanga 100 pcs,800000,TZS,Tandahimba Supply Co,cogs,manual,posted
+2026-07-09,Sale - kanga 30 pcs,390000,TZS,Catherine Njeri,sales,manual,posted
+2026-07-10,Staff salary - shop assistant Baraka,400000,TZS,Baraka Mwakasege,salaries,manual,posted
+2026-07-11,Fuel for delivery pikipiki,35000,TZS,Total Energy Kariakoo,transport,manual,posted
+2026-07-12,Sale - school uniforms 15 sets,675000,TZS,David Kimani,sales,manual,posted
+2026-07-14,M-Pesa withdrawal fees,8500,TZS,Vodacom M-Pesa,bank_charges,manual,posted
+2026-07-15,Sale - lesso 25 pcs,437500,TZS,Esther Mushi,sales,manual,posted
+2026-07-16,Wholesale kitenge fabric,1800000,TZS,Mwananyamala Distributors,cogs,manual,posted
+2026-07-17,Printer paper and receipt rolls,28000,TZS,Office Supplies Kariakoo,office_supplies,manual,posted
+2026-07-18,Sale - children clothing bundle,280000,TZS,Francis Otieno,sales,manual,posted
+2026-07-19,Internet - Vodacom monthly,55000,TZS,Vodacom,telecom,manual,posted
+2026-07-20,Sale - women dresses 8 pcs,640000,TZS,Grace Mkwawa,sales,manual,posted
+2026-07-21,Shop cleaning supplies,42000,TZS,CleanCo Tanzania,office_supplies,manual,posted
+2026-07-22,Wholesale t-shirts 200 pcs,1400000,TZS,Kariakoo Wholesalers,cogs,manual,posted
+2026-07-23,Sale - men trousers 15 pcs,525000,TZS,Hassan Juma,sales,manual,posted
+2026-07-24,Staff salary - night guard,250000,TZS,Omari Nassor,salaries,manual,posted
+2026-07-25,Sale - baby clothes set,180000,TZS,Irene Balira,sales,manual,posted
+2026-07-26,Boda boda delivery hire,15000,TZS,Fadhili Rider,transport,manual,posted
+2026-07-27,Wholesale shoes 50 pairs,2500000,TZS,Sinza Shoe Depot,cogs,manual,posted
+2026-07-28,Sale - sports shoes 10 pairs,450000,TZS,Joseph Mkumbwa,sales,manual,posted
+2026-07-29,TRA business licence fee,180000,TZS,TRA,government_fees,manual,posted
+2026-07-30,DSTV subscription shop TV,65000,TZS,DSTV,telecom,manual,posted
+2026-07-31,Sale - mixed clothing end-of-month,720000,TZS,Anna Mwangi,sales,manual,posted
+2026-08-01,Rent - Kariakoo shop August,850000,TZS,Landlord Mzee Hamisi,rent,manual,posted
+2026-08-02,Wholesale khanga 80 pcs,640000,TZS,Kariakoo Textiles Ltd,cogs,manual,posted
+2026-08-03,Sale - kanga 20 pcs,260000,TZS,Catherine Njeri,sales,manual,posted
+2026-08-04,Advertising - Radio Free Africa spot,150000,TZS,Radio Free Africa,marketing,manual,posted
+2026-08-05,Sale - school bags 25 pcs,375000,TZS,David Kimani,sales,manual,posted
+2026-08-05,TANESCO electricity bill August,135000,TZS,TANESCO,utilities,manual,posted
+2026-08-06,Staff salary - shop assistant Baraka,400000,TZS,Baraka Mwakasege,salaries,manual,posted
+2026-08-07,Sale - men suits 5 pcs,1250000,TZS,Benson Ochieng,sales,manual,posted
+2026-08-07,Fuel for delivery truck,62000,TZS,Total Energy Kariakoo,transport,manual,posted
+2026-08-08,Wholesale underwear and socks,480000,TZS,Mwananyamala Distributors,cogs,manual,posted
+2026-08-08,Sale - underwear packs 40,320000,TZS,Esther Mushi,sales,manual,posted
+2026-08-09,M-Pesa transaction fees,11200,TZS,Vodacom M-Pesa,bank_charges,manual,posted
+2026-08-09,Sale - women handbags 12 pcs,480000,TZS,Grace Mkwawa,sales,manual,posted
+2026-08-10,Insurance premium Q3,350000,TZS,Jamii Bima Insurance,insurance,manual,pending
+2026-08-10,Wholesale children shoes,960000,TZS,Sinza Shoe Depot,cogs,manual,posted
+2026-08-11,Sale - children sneakers 18 pairs,450000,TZS,Joseph Mkumbwa,sales,manual,posted
+2026-08-11,Internet - Vodacom monthly,55000,TZS,Vodacom,telecom,manual,posted
+2026-08-12,Sale - vitenge 15 pcs,450000,TZS,Anna Mwangi,sales,manual,posted
+2026-08-12,Staff salary - night guard,250000,TZS,Omari Nassor,salaries,manual,posted
+2026-08-13,Sale - men polos 30 pcs,390000,TZS,Hassan Juma,sales,manual,categorized
+2026-08-13,Shop signage repair,95000,TZS,Mikocheni Hardware,maintenance,manual,posted
+2026-08-14,Sale - women blouses 22 pcs,440000,TZS,Irene Balira,sales,manual,posted
+2026-08-14,Wholesale kitenge fabric,1500000,TZS,Tandahimba Supply Co,cogs,manual,posted
+2026-08-14,Cash register tape rolls,18000,TZS,Office Supplies Kariakoo,office_supplies,manual,posted
+2026-08-15,Sale - school uniforms 20 sets,900000,TZS,David Kimani,sales,manual,pending
+2026-08-15,DAWASCO water bill,48000,TZS,DAWASCO,utilities,manual,pending
+2026-08-15,Sale - mixed clothing bundle,350000,TZS,Francis Otieno,sales,manual,pending
+2026-07-06,Sale - kangas 10 pcs to market vendor,150000,TZS,Neema Charles,sales,manual,posted
+2026-07-13,Wholesale socks and belts,320000,TZS,Kariakoo Wholesalers,cogs,manual,posted
+2026-07-13,Sale - belts and socks bundle,210000,TZS,Peter Mwamba,sales,manual,posted
+2026-07-20,Sale - men caps 50 pcs,250000,TZS,Samuel Ngowi,sales,manual,posted
+2026-07-25,Wholesale caps and hats,180000,TZS,Kariakoo Textiles Ltd,cogs,manual,posted
+2026-07-28,Advertising - Facebook page boost,80000,TZS,Meta Platforms,marketing,manual,posted
+2026-08-01,Sale - leso 15 pcs,262500,TZS,Fatuma Ally,sales,manual,posted
+2026-08-03,Office chair purchase,185000,TZS,Mikocheni Hardware,furniture,manual,posted
+2026-08-06,Sale - men sandals 20 pairs,300000,TZS,Peter Mwamba,sales,manual,posted
+2026-08-10,Sale - kangas 25 pcs,375000,TZS,Neema Charles,sales,manual,posted
+2026-08-11,Sale - school socks 100 pairs,150000,TZS,Samuel Ngowi,sales,manual,posted
+2026-08-12,Sale - women scarves 30 pcs,240000,TZS,Fatuma Ally,sales,manual,posted
+2026-08-13,Security camera subscription,120000,TZS,SecuTech Ltd,security,manual,posted
+2026-08-14,Sale - men belts 40 pcs,280000,TZS,Hassan Juma,sales,manual,posted
+2026-07-02,Wholesale women handbags,650000,TZS,Mwananyamala Distributors,cogs,manual,posted
+2026-07-09,Sale - handbags 8 pcs,360000,TZS,Fatuma Ally,sales,manual,posted
+2026-07-16,Sale - men watches 5 pcs,275000,TZS,Samuel Ngowi,sales,manual,posted
+2026-07-23,Wholesale watches and jewellery,420000,TZS,Sinza Shoe Depot,cogs,manual,posted
+2026-08-02,Sale - watches 3 pcs,195000,TZS,Peter Mwamba,sales,manual,posted
+2026-08-05,Sale - women dresses 6 pcs,480000,TZS,Neema Charles,sales,manual,posted
+2026-08-08,Sale - men jeans 12 pairs,540000,TZS,Joseph Mkumbwa,sales,manual,posted
+2026-08-10,Wholesale jeans and trousers,1100000,TZS,Kariakoo Wholesalers,cogs,manual,posted
+2026-08-12,Sale - curtains 8 sets,400000,TZS,Grace Mkwawa,sales,manual,posted
+2026-08-13,Sale - men watches 4 pcs,220000,TZS,Samuel Ngowi,sales,manual,posted
+2026-08-14,Wholesale curtains and drapes,300000,TZS,Tandahimba Supply Co,cogs,manual,posted

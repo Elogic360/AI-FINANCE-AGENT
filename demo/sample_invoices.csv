@@ -1,0 +1,11 @@
+invoice_number,customer_name,issue_date,due_date,subtotal,tax,total,status,items
+INV-2026-001,Anna Mwangi,2026-07-03,2026-07-17,360000,64800,424800,paid,"vitenge 12 pcs @ 30000"
+INV-2026-002,Benson Ochieng,2026-07-05,2026-07-19,500000,90000,590000,paid,"men shirts 20 pcs @ 25000"
+INV-2026-003,Catherine Njeri,2026-07-09,2026-07-23,390000,70200,460200,paid,"kanga 30 pcs @ 13000"
+INV-2026-004,David Kimani,2026-07-12,2026-07-26,675000,121500,796500,paid,"school uniforms 15 sets @ 45000"
+INV-2026-005,Esther Mushi,2026-07-15,2026-07-29,437500,78750,516250,unpaid,"lesso 25 pcs @ 17500"
+INV-2026-006,Grace Mkwawa,2026-07-20,2026-08-03,640000,115200,755200,unpaid,"women dresses 8 pcs @ 80000"
+INV-2026-007,Joseph Mkumbwa,2026-07-28,2026-08-11,450000,81000,531000,unpaid,"sports shoes 10 pairs @ 45000"
+INV-2026-008,Benson Ochieng,2026-08-07,2026-08-21,1250000,225000,1475000,unpaid,"men suits 5 pcs @ 250000"
+INV-2026-009,David Kimani,2026-08-05,2026-07-30,375000,67500,442500,overdue,"school bags 25 pcs @ 15000"
+INV-2026-010,Francis Otieno,2026-07-18,2026-08-01,280000,50400,330400,overdue,"children clothing bundle"

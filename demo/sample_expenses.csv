@@ -1,0 +1,31 @@
+category,description,typical_amount_range_tzs,frequency,payment_method,vendor_example
+Rent,Shop rental - Kariakoo area,800000-1200000,Monthly,Bank transfer,Landlord
+Electricity,TANESCO power bill,80000-200000,Monthly,M-Pesa,TANESCO
+Water,DAWASCO water bill,30000-80000,Monthly,M-Pesa,DAWASCO
+Salaries,Shop assistant wages,350000-500000,Monthly,Cash/M-Pesa,Staff
+Salaries,Night security guard,200000-300000,Monthly,Cash,Security staff
+Cost of Goods,Wholesale kangas/khanga,500000-1500000,Weekly,Bank/Cash,Kariakoo Textiles Ltd
+Cost of Goods,Wholesale men clothing,800000-2500000,Weekly,Bank transfer,Kariakoo Wholesalers
+Cost of Goods,Wholesale women clothing,600000-1800000,Weekly,Bank transfer,Mwananyamala Distributors
+Cost of Goods,Wholesale shoes and sandals,500000-2500000,Monthly,Bank transfer,Sinza Shoe Depot
+Cost of Goods,Wholesale accessories,200000-800000,Monthly,Cash,Tandahimba Supply Co
+Transport,Delivery pikipiki fuel,20000-50000,Weekly,Cash,Total Energy
+Transport,Delivery truck fuel,50000-100000,Weekly,Cash,Total Energy Kariakoo
+Transport,Boda boda hire for deliveries,10000-30000,Per delivery,Cash,Fadhili Rider
+Bank Charges,M-Pesa withdrawal fees,5000-15000,Daily,M-Pesa deducted,Vodacom M-Pesa
+Bank Charges,Bank transfer fees,8000-25000,Weekly,Bank deducted,NMB Bank
+Telephone,Vodacom internet bundle,45000-65000,Monthly,M-Pesa,Vodacom
+Telephone,DSTV subscription for shop,55000-85000,Monthly,M-Pesa,DSTV
+Office Supplies,Printer paper and receipt rolls,15000-40000,Monthly,Cash,Office Supplies Kariakoo
+Office Supplies,Cleaning supplies,25000-50000,Monthly,Cash,CleanCo Tanzania
+Marketing,Facebook/Instagram ads,50000-150000,Monthly,Card,Meta Platforms
+Marketing,Local radio advertising,100000-300000,Quarterly,Bank transfer,Radio Free Africa
+Marketing,Shop banners and flyers,30000-80000,Quarterly,Cash,Print Shop Kariakoo
+Insurance,Business insurance premium,300000-500000,Quarterly,Bank transfer,Jamii Bima Insurance
+Government Fees,TRA business licence,150000-250000,Annually,Bank,TRA
+Government Fees,TIN certificate renewal,0,Annually,N/A,TRA
+Maintenance,Shop signage repair,50000-150000,As needed,Cash,Mikocheni Hardware
+Maintenance,Fixture and shelf repairs,30000-100000,As needed,Cash,Mikocheni Hardware
+Security,CCTV subscription,100000-150000,Monthly,Bank transfer,SecuTech Ltd
+Furniture,Office chair/desk purchase,100000-300000,As needed,Cash,Mikocheni Hardware
+Miscellaneous,Petty cash top-up,50000-100000,Weekly,Cash,N/A

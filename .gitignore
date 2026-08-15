@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+coverage/
+htmlcov/
+
+# Logs
+*.log
+install.log
+
+# Tools
+.mimocode/
+.playwright-cli/
+
+# Heavy/excluded directories
+software-factory/
+
+# Python
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Misc
+*.tsbuildinfo
