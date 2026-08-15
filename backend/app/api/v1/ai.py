@@ -4,6 +4,7 @@ import json
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import AsyncIterator
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.core.config import get_settings
+from app.ai.prompts import build_prompt_bundle
 from app.models.business import User
 from app.models.accounting import Transaction, JournalEntry, JournalLine, ChartOfAccounts
 from app.models.contacts import Invoice, Customer
@@ -125,6 +127,112 @@ TOP EXPENSE CATEGORIES:"""
     return ctx
 
 
+def _resolve_prompt_mode(message: str, prompt_mode: str | None = None) -> str:
+    """Infer prompt mode from the user message when the frontend does not send one."""
+    if prompt_mode and prompt_mode != "chat_short":
+        return prompt_mode
+
+    msg = message.lower()
+    if any(phrase in msg for phrase in ["json pitch deck", "pitch deck json", "pitch deck as json", "structured json"]):
+        return "pitch_deck_json"
+    if any(phrase in msg for phrase in ["pitch deck", "pitchdeck", "investor deck", "deck for investors"]):
+        return "pitch_deck"
+    return "chat_short"
+
+
+def _sse_chunk(text: str, event: str = "message") -> str:
+    return f"data: {ChatChunk(event=event, data=text).model_dump_json()}\n\n"
+
+
+async def _stream_gemini(full_prompt: str, prompt_mode: str, conversation_id: str) -> AsyncIterator[str]:
+    """Stream a response from Gemini using the official SSE endpoint."""
+    if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY == "your-gemini-api-key":
+        return
+
+    generation_config: dict[str, object] = {
+        "temperature": 0.7,
+        "maxOutputTokens": 1024,
+    }
+    if prompt_mode == "pitch_deck_json":
+        generation_config["responseMimeType"] = "application/json"
+
+    payload = {
+        "contents": [{"parts": [{"text": full_prompt}]}],
+        "generationConfig": generation_config,
+    }
+
+    async with httpx.AsyncClient(timeout=None) as client:
+        async with client.stream(
+            "POST",
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key={settings.GEMINI_API_KEY}",
+            json=payload,
+        ) as resp:
+            resp.raise_for_status()
+            buffer = ""
+            async for chunk in resp.aiter_text():
+                buffer += chunk
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    line = line.strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if not data or data == "[DONE]":
+                        continue
+                    try:
+                        payload_data = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    candidates = payload_data.get("candidates") or []
+                    text = ""
+                    if candidates:
+                        content = candidates[0].get("content", {})
+                        parts = content.get("parts", [])
+                        if parts:
+                            text = parts[0].get("text", "") or ""
+                    if text:
+                        yield _sse_chunk(text, "message")
+
+    yield _sse_chunk(json.dumps({"conversation_id": conversation_id, "message_count": 1}), "done")
+
+
+async def _stream_pawa(
+    system_prompt: str,
+    business_context: str,
+    user_message: str,
+    conversation_id: str,
+) -> AsyncIterator[str]:
+    """Stream a response from Pawa by calling its chat API and chunking the result."""
+    if not settings.PAWA_API_KEY or settings.PAWA_API_KEY == "your-pawa-api-key":
+        return
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(
+            f"{settings.PAWA_API_URL}/v1/chat",
+            headers={"Authorization": f"Bearer {settings.PAWA_API_KEY}"},
+            json={
+                "message": user_message,
+                "context": business_context,
+                "system": system_prompt,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        text = data.get("response", data.get("message", ""))
+        if not text:
+            yield _sse_chunk(json.dumps({"conversation_id": conversation_id, "message_count": 1}), "done")
+            return
+
+        words = text.split()
+        for i in range(0, len(words), 5):
+            chunk_text = " ".join(words[i:i + 5])
+            if i + 5 < len(words):
+                chunk_text += " "
+            yield _sse_chunk(chunk_text, "message")
+
+    yield _sse_chunk(json.dumps({"conversation_id": conversation_id, "message_count": 1}), "done")
+
+
 # ---------------------------------------------------------------------------
 # POST /ai/chat — SSE streaming chat with AI CFO
 # ---------------------------------------------------------------------------
@@ -137,193 +245,47 @@ async def chat_with_ai(
 ):
     """Stream a conversation with the AI CFO via Server-Sent Events."""
     conversation_id = body.conversation_id or uuid.uuid4()
+    resolved_mode = _resolve_prompt_mode(body.message, body.prompt_mode)
 
     # Build business context from database
     business_context = await _build_business_context(db, current_user.business_id)
 
-    system_prompt = """You are FinPilot AI, an expert CFO advisor for small businesses in Tanzania.
-You analyze financial data and give clear, actionable advice.
-Use TZS (Tanzania Shillings) for all amounts.
-Be concise but thorough. Use bullet points for recommendations.
-If the user asks in Swahili, respond in Swahili.
-Never invent data — only reference what's in the provided business data."""
-
-    full_prompt = f"{system_prompt}\n\n{business_context}\n\nUser question: {body.message}"
+    system_prompt, full_prompt = build_prompt_bundle(
+        resolved_mode,
+        business_context,
+        body.message,
+    )
 
     async def event_stream():
-        # Try Gemini API first
+        # Try Gemini first for realtime SSE streaming.
         if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY != "your-gemini-api-key":
             try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.post(
-                        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={settings.GEMINI_API_KEY}",
-                        json={
-                            "contents": [{"parts": [{"text": full_prompt}]}],
-                            "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1024},
-                        },
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                        if text:
-                            # Stream the response in chunks
-                            words = text.split(" ")
-                            chunk_size = 5
-                            for i in range(0, len(words), chunk_size):
-                                chunk_text = " ".join(words[i:i + chunk_size]) + " "
-                                chunk = ChatChunk(event="message", data=chunk_text)
-                                yield f"data: {chunk.model_dump_json()}\n\n"
+                async for chunk in _stream_gemini(full_prompt, resolved_mode, str(conversation_id)):
+                    yield chunk
+                return
+            except Exception:
+                # Fall through to Pawa if Gemini fails.
+                pass
 
-                            done_chunk = ChatChunk(
-                                event="done",
-                                data=json.dumps({"conversation_id": str(conversation_id), "message_count": 1}),
-                            )
-                            yield f"data: {done_chunk.model_dump_json()}\n\n"
-                            return
-            except Exception as e:
-                pass  # Fall through to Pawa
-
-        # Try Pawa API
+        # Try Pawa next.
         if settings.PAWA_API_KEY and settings.PAWA_API_KEY != "your-pawa-api-key":
             try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.post(
-                        f"{settings.PAWA_API_URL}/v1/chat",
-                        headers={"Authorization": f"Bearer {settings.PAWA_API_KEY}"},
-                        json={
-                            "message": body.message,
-                            "context": business_context,
-                            "system": system_prompt,
-                        },
-                    )
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        text = data.get("response", data.get("message", ""))
-                        if text:
-                            words = text.split(" ")
-                            chunk_size = 5
-                            for i in range(0, len(words), chunk_size):
-                                chunk_text = " ".join(words[i:i + chunk_size]) + " "
-                                chunk = ChatChunk(event="message", data=chunk_text)
-                                yield f"data: {chunk.model_dump_json()}\n\n"
+                async for chunk in _stream_pawa(system_prompt, business_context, body.message, str(conversation_id)):
+                    yield chunk
+                return
+            except Exception:
+                pass
 
-                            done_chunk = ChatChunk(
-                                event="done",
-                                data=json.dumps({"conversation_id": str(conversation_id), "message_count": 1}),
-                            )
-                            yield f"data: {done_chunk.model_dump_json()}\n\n"
-                            return
-            except Exception as e:
-                pass  # Fall through to local analysis
-
-        # Fallback: intelligent local analysis using actual business data
-        net = float(rev) - float(exp) if 'rev' in dir() else 0
-        response_parts = _generate_local_analysis(body.message, business_context)
-        for part in response_parts:
-            chunk = ChatChunk(event="message", data=part)
-            yield f"data: {chunk.model_dump_json()}\n\n"
-
-        done_chunk = ChatChunk(
-            event="done",
-            data=json.dumps({"conversation_id": str(conversation_id), "message_count": len(response_parts) + 1}),
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No AI provider is configured. Set GEMINI_API_KEY or PAWA_API_KEY to enable live responses.",
         )
-        yield f"data: {done_chunk.model_dump_json()}\n\n"
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
-
-
-def _generate_local_analysis(message: str, context: str) -> list[str]:
-    """Generate analysis from actual business data when LLM APIs are unavailable."""
-    msg = message.lower()
-
-    # Parse key metrics from context
-    lines = context.split("\n")
-    metrics = {}
-    for line in lines:
-        if ":" in line:
-            parts = line.split(":", 1)
-            key = parts[0].strip("- ").strip()
-            val = parts[1].strip()
-            metrics[key] = val
-
-    rev = metrics.get("Total Revenue", "TZS 0")
-    exp = metrics.get("Total Expenses", "TZS 0")
-    net = metrics.get("Net Income", "TZS 0")
-    ar = metrics.get("Accounts Receivable", "TZS 0")
-    overdue = metrics.get("Total Invoices", "0").split("(")[1].split(" ")[0] if "(" in metrics.get("Total Invoices", "") else "0"
-    txns = metrics.get("Total Transactions", "0")
-
-    if "profit" in msg or "falling" in msg or "loss" in msg:
-        return [
-            f"**Profit Analysis:**\n\n",
-            f"Your current financial position:\n",
-            f"- Revenue: {rev}\n",
-            f"- Expenses: {exp}\n",
-            f"- Net Income: {net}\n\n",
-            f"**Key Findings:**\n",
-            f"- You have {txns} transactions in your records\n",
-            f"- Accounts receivable stands at {ar}\n",
-            f"- There are {overdue} overdue invoices affecting cash flow\n\n",
-            f"**Recommendations:**\n",
-            f"1. Focus on collecting overdue invoices to improve cash position\n",
-            f"2. Review your top expense categories for potential savings\n",
-            f"3. Consider renegotiating supplier terms to reduce COGS\n",
-            f"4. Track daily sales to identify trends early",
-        ]
-    elif "cash" in msg or "afford" in msg or "hire" in msg:
-        return [
-            f"**Cash Position Analysis:**\n\n",
-            f"- Net Income: {net}\n",
-            f"- Accounts Receivable: {ar}\n",
-            f"- Active Invoices: {metrics.get('Total Invoices', '0')}\n\n",
-            f"**Assessment:**\n",
-            f"Before hiring, consider:\n",
-            f"1. Your current cash runway and monthly burn rate\n",
-            f"2. Whether revenue growth justifies the additional expense\n",
-            f"3. Expected salary cost vs. productivity gain\n\n",
-            f"**Recommendation:** Collect outstanding receivables first, then evaluate hiring based on consistent monthly revenue.",
-        ]
-    elif "invoice" in msg or "overdue" in msg or "receivable" in msg:
-        return [
-            f"**Receivables Analysis:**\n\n",
-            f"- Total Accounts Receivable: {ar}\n",
-            f"- Overdue Invoices: {overdue}\n\n",
-            f"**Action Items:**\n",
-            f"1. Follow up on overdue invoices immediately\n",
-            f"2. Offer early payment discounts (e.g., 2% for payment within 7 days)\n",
-            f"3. Set up automated payment reminders\n",
-            f"4. Consider invoice factoring for large receivables",
-        ]
-    elif "expense" in msg or "cost" in msg or "reduce" in msg:
-        return [
-            f"**Expense Analysis:**\n\n",
-            f"- Total Expenses: {exp}\n",
-            f"- Total Revenue: {rev}\n\n",
-            f"**Top areas to review:**\n",
-            f"1. Rent - negotiate lease terms or consider relocating\n",
-            f"2. Transport - optimize delivery routes\n",
-            f"3. Inventory - reduce dead stock, buy in bulk\n",
-            f"4. Utilities - energy-efficient equipment\n\n",
-            f"**Target:** Reduce expenses by 10-15% to improve margins.",
-        ]
-    else:
-        return [
-            f"**Financial Overview:**\n\n",
-            f"- Revenue: {rev}\n",
-            f"- Expenses: {exp}\n",
-            f"- Net Income: {net}\n",
-            f"- Transactions: {txns}\n",
-            f"- Accounts Receivable: {ar}\n\n",
-            f"**Key Insights:**\n",
-            f"1. Your business has {txns} transactions recorded\n",
-            f"2. {overdue} invoices are overdue and need follow-up\n",
-            f"3. Focus on collecting receivables to improve cash flow\n\n",
-            f"Ask me about specific areas: profit, expenses, cash flow, invoices, or forecasting.",
-        ]
 
 
 # ---------------------------------------------------------------------------

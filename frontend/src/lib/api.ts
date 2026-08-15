@@ -9,6 +9,7 @@ import type {
   SuggestedQuestion,
   PnLData,
   BalanceSheetData,
+  PromptMode,
 } from '../types';
 
 // ─── FastAPI / Pydantic v2 error types ───────────────────────────────────────
@@ -191,8 +192,8 @@ export async function fetchSuggestedQuestions(): Promise<SuggestedQuestion[]> {
   });
 }
 
-export async function sendChatMessage(message: string): Promise<ChatMessageData> {
-  const res = await api.post('/ai/chat', { message });
+export async function sendChatMessage(message: string, promptMode: PromptMode = 'chat_short'): Promise<ChatMessageData> {
+  const res = await api.post('/ai/chat', { message, prompt_mode: promptMode });
   return res.data;
 }
 
@@ -202,6 +203,7 @@ export async function sendChatMessage(message: string): Promise<ChatMessageData>
  */
 export function streamChatMessage(
   message: string,
+  promptMode: PromptMode,
   onChunk: (chunk: string) => void,
   onComplete: (response: ChatMessageData) => void,
   onError: (err: Error) => void,
@@ -217,7 +219,7 @@ export function streamChatMessage(
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, prompt_mode: promptMode }),
         signal: controller.signal,
       });
 
@@ -239,11 +241,15 @@ export function streamChatMessage(
             if (payload === '[DONE]') continue;
             try {
               const parsed = JSON.parse(payload);
-              if (parsed.chunk) {
-                fullText += parsed.chunk;
-                onChunk(parsed.chunk);
+              const event = parsed.event ?? (parsed.done ? 'done' : parsed.chunk ? 'message' : undefined);
+              const chunk = typeof parsed.data === 'string' ? parsed.data : parsed.chunk;
+
+              if (event === 'message' && chunk) {
+                fullText += chunk;
+                onChunk(chunk);
               }
-              if (parsed.done) {
+
+              if (event === 'done') {
                 onComplete(parsed.response ?? {
                   id: crypto.randomUUID(),
                   role: 'assistant' as const,

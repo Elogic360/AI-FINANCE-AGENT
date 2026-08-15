@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,6 +22,7 @@ class ChatRequest(BaseModel):
     """Request body for the AI CFO chat endpoint."""
     message: str = Field(..., min_length=1, max_length=4000)
     conversation_id: Optional[uuid.UUID] = None
+    prompt_mode: Literal["chat_short", "pitch_deck", "pitch_deck_json"] = "chat_short"
 
 
 class ChatChunk(BaseModel):
