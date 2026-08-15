@@ -181,7 +181,14 @@ export async function fetchAlerts(): Promise<Alert[]> {
 
 export async function fetchSuggestedQuestions(): Promise<SuggestedQuestion[]> {
   const res = await api.post('/ai/suggest', {});
-  return res.data.questions ?? res.data;
+  const questions = res.data.questions ?? res.data;
+  // Map backend format to frontend format
+  return questions.map((q: string | SuggestedQuestion, i: number) => {
+    if (typeof q === 'string') {
+      return { id: String(i), text: q, category: 'general' };
+    }
+    return q;
+  });
 }
 
 export async function sendChatMessage(message: string): Promise<ChatMessageData> {

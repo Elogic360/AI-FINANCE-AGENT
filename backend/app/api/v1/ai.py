@@ -440,34 +440,46 @@ async def get_suggestions(
     db: AsyncSession = Depends(get_db),
 ):
     """Get AI-suggested questions based on current business context."""
-    context = body.context or "general"
+    # Fetch actual business data to personalize suggestions
+    bid = current_user.business_id
 
-    suggestions_map = {
-        "general": [
-            "What is my current cash position?",
-            "Which invoices are overdue and need follow-up?",
-            "How does my revenue compare to last month?",
-            "What are my top expense categories?",
-            "Am I on track to meet my financial targets?",
-        ],
-        "dashboard": [
-            "Why did revenue change this month?",
-            "Which expenses can I reduce?",
-            "What is my projected cash balance for next month?",
-            "How healthy is my accounts receivable?",
-        ],
-        "documents": [
-            "Can you summarize the latest bank statement?",
-            "What transactions are missing from my records?",
-            "Are there any discrepancies in the uploaded invoices?",
-        ],
-        "reports": [
-            "Generate a profit and loss summary for this quarter",
-            "What does my balance sheet tell about my business health?",
-            "Show me the cash flow forecast for the next 90 days",
-        ],
-    }
+    overdue = (await db.execute(
+        select(func.count()).select_from(Invoice).where(Invoice.business_id == bid, Invoice.status == "overdue")
+    )).scalar() or 0
 
-    return SuggestResponse(
-        questions=suggestions_map.get(context, suggestions_map["general"]),
-    )
+    txn_count = (await db.execute(
+        select(func.count()).select_from(Transaction).where(Transaction.business_id == bid)
+    )).scalar() or 0
+
+    rev = (await db.execute(
+        select(func.coalesce(func.sum(JournalLine.credit - JournalLine.debit), 0))
+        .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+        .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+        .where(ChartOfAccounts.business_id == bid, ChartOfAccounts.account_type == "revenue", JournalEntry.is_draft.is_(False))
+    )).scalar() or 0
+
+    exp = (await db.execute(
+        select(func.coalesce(func.sum(JournalLine.debit - JournalLine.credit), 0))
+        .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+        .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+        .where(ChartOfAccounts.business_id == bid, ChartOfAccounts.account_type == "expense", JournalEntry.is_draft.is_(False))
+    )).scalar() or 0
+
+    questions = []
+
+    if overdue > 0:
+        questions.append({"id": "1", "text": f"I have {overdue} overdue invoices. What should I do?", "text_sw": f"Nina ankara {overdue} zilizopita wakati. Nifanye nini?", "category": "receivables"})
+
+    if float(exp) > float(rev):
+        questions.append({"id": "2", "text": "Why are my expenses higher than revenue?", "text_sw": "Kwa nini gharama zangu ni kubwa kuliko mapato?", "category": "analysis"})
+
+    questions.extend([
+        {"id": "3", "text": "What is my current cash position?", "text_sw": "Hali yangu ya pesa ipoje sasa?", "category": "cash"},
+        {"id": "4", "text": "Can I afford to hire another employee?", "text_sw": "Je, ninaweza kumudu kuajiri mfanyakazi mwingine?", "category": "planning"},
+        {"id": "5", "text": "What are my biggest expenses?", "text_sw": "Gharama zangu kubwa ni zipi?", "category": "analysis"},
+        {"id": "6", "text": "How can I improve my profit margins?", "text_sw": "Ninawezaje kuboresha faida yangu?", "category": "advice"},
+        {"id": "7", "text": "Summarize my financial health", "text_sw": "Fupisha hali yangu ya kifedha", "category": "summary"},
+        {"id": "8", "text": "What happens if sales drop 20%?", "text_sw": "Nini kama mauzo yashuka 20%?", "category": "forecast"},
+    ])
+
+    return SuggestResponse(questions=questions[:8])

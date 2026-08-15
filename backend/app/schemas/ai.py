@@ -79,6 +79,14 @@ class SuggestRequest(BaseModel):
     context: Optional[str] = None  # e.g. "dashboard", "documents", "reports"
 
 
+class SuggestedQuestionItem(BaseModel):
+    """A single suggested question."""
+    id: str
+    text: str
+    text_sw: Optional[str] = None
+    category: str
+
+
 class SuggestResponse(BaseModel):
     """Suggested questions for the user."""
-    questions: list[str]
+    questions: list[SuggestedQuestionItem]
