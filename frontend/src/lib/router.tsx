@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Layout from '../components/Layout';
+import { RouteErrorElement } from '../components/ErrorBoundary';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import DashboardPage from '../pages/DashboardPage';
@@ -28,21 +29,22 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export const router = createBrowserRouter([
-  { path: '/login', element: <PublicRoute><LoginPage /></PublicRoute> },
-  { path: '/register', element: <PublicRoute><RegisterPage /></PublicRoute> },
+  { path: '/login', element: <PublicRoute><LoginPage /></PublicRoute>, errorElement: <RouteErrorElement /> },
+  { path: '/register', element: <PublicRoute><RegisterPage /></PublicRoute>, errorElement: <RouteErrorElement /> },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteErrorElement />,
     children: [
-      { path: '/', element: <DashboardPage /> },
-      { path: '/dashboard', element: <DashboardPage /> },
-      { path: '/transactions', element: <TransactionsPage /> },
-      { path: '/journal', element: <JournalPage /> },
-      { path: '/invoices', element: <InvoicesPage /> },
-      { path: '/expenses', element: <ExpensesPage /> },
-      { path: '/reports', element: <ReportsPage /> },
-      { path: '/documents', element: <DocumentsPage /> },
-      { path: '/ai-cfo', element: <AICFOPage /> },
-      { path: '/settings', element: <SettingsPage /> },
+      { path: '/', element: <DashboardPage />, errorElement: <RouteErrorElement /> },
+      { path: '/dashboard', element: <DashboardPage />, errorElement: <RouteErrorElement /> },
+      { path: '/transactions', element: <TransactionsPage />, errorElement: <RouteErrorElement /> },
+      { path: '/journal', element: <JournalPage />, errorElement: <RouteErrorElement /> },
+      { path: '/invoices', element: <InvoicesPage />, errorElement: <RouteErrorElement /> },
+      { path: '/expenses', element: <ExpensesPage />, errorElement: <RouteErrorElement /> },
+      { path: '/reports', element: <ReportsPage />, errorElement: <RouteErrorElement /> },
+      { path: '/documents', element: <DocumentsPage />, errorElement: <RouteErrorElement /> },
+      { path: '/ai-cfo', element: <AICFOPage />, errorElement: <RouteErrorElement /> },
+      { path: '/settings', element: <SettingsPage />, errorElement: <RouteErrorElement /> },
     ],
   },
 ]);

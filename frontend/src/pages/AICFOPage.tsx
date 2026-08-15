@@ -13,6 +13,7 @@ import {
   fetchSuggestedQuestions,
   sendChatMessage,
   streamChatMessage,
+  extractErrorMessage,
 } from '../lib/api';
 import type { ChatMessageData, SuggestedQuestion } from '../types';
 
@@ -110,7 +111,7 @@ export default function AICFOPage() {
               {
                 id: streamingMsgId,
                 role: 'assistant',
-                content: `Sorry, I encountered an error: ${err.message}. Please try again.`,
+                content: `Sorry, I encountered an error: ${extractErrorMessage(err)}. Please try again.`,
                 timestamp: new Date().toISOString(),
               },
             ]);

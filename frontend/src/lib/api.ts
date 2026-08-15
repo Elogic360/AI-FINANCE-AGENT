@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import type {
   DashboardSummary,
   Alert,
@@ -11,13 +11,29 @@ import type {
   BalanceSheetData,
 } from '../types';
 
+// ─── FastAPI / Pydantic v2 error types ───────────────────────────────────────
+
+export interface FastApiValidationError {
+  type: string;
+  loc: (string | number)[];
+  msg: string;
+  input?: unknown;
+  url?: string;
+}
+
+export interface FastApiErrorResponse {
+  detail: string | FastApiValidationError[];
+}
+
+// ─── Axios instance ──────────────────────────────────────────────────────────
+
 const api = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
 });
 
 /**
- * Safely extract a human-readable error message from an Axios error.
+ * Safely extract a human-readable error message from any error shape.
  *
  * FastAPI / Pydantic v2 validation errors come back as:
  *   { detail: [ { type, loc, msg, input, url }, ... ] }
@@ -28,9 +44,20 @@ const api = axios.create({
  * never accidentally render an object as a React child.
  */
 export function extractErrorMessage(err: unknown, fallback = 'An unexpected error occurred'): string {
-  // Guard: make sure we have something shaped like an Axios error
-  const axiosErr = err as any;
-  const detail = axiosErr?.response?.data?.detail;
+  // Guard: null / undefined
+  if (err == null) return fallback;
+
+  // Plain string error
+  if (typeof err === 'string') return err || fallback;
+
+  // Standard Error object (network errors, etc.)
+  if (err instanceof Error && !isAxiosError(err)) {
+    return err.message || fallback;
+  }
+
+  // Axios-shaped error — safely extract response data
+  const axiosErr = err as AxiosError<FastApiErrorResponse>;
+  const detail = axiosErr.response?.data?.detail;
 
   // 1. detail is a plain string  (most HTTPException cases)
   if (typeof detail === 'string') return detail;
@@ -38,30 +65,67 @@ export function extractErrorMessage(err: unknown, fallback = 'An unexpected erro
   // 2. detail is an array  (Pydantic v2 422 validation errors)
   if (Array.isArray(detail)) {
     return detail
-      .map((d: any) => {
+      .map((d) => {
         if (typeof d === 'string') return d;
-        if (d && typeof d === 'object' && typeof d.msg === 'string') return d.msg;
+        if (d != null && typeof d === 'object') {
+          const rec = d as unknown as Record<string, unknown>;
+          if (typeof rec.msg === 'string') {
+            const loc = rec.loc as (string | number)[] | undefined;
+            const field = loc && loc.length > 1 ? String(loc[loc.length - 1]) : '';
+            return field ? `${field}: ${rec.msg}` : rec.msg;
+          }
+        }
         return String(d);
       })
       .filter(Boolean)
-      .join('. ');
+      .join('\n');
   }
 
   // 3. detail is a single object  (rare, but possible)
-  if (detail && typeof detail === 'object') {
-    if (typeof detail.msg === 'string') return detail.msg;
-    if (typeof detail.message === 'string') return detail.message;
+  if (detail != null && typeof detail === 'object' && !Array.isArray(detail)) {
+    const d = detail as unknown as Record<string, unknown>;
+    if (typeof d.msg === 'string') return d.msg;
+    if (typeof d.message === 'string') return d.message;
     try { return JSON.stringify(detail); } catch { return String(detail); }
   }
 
   // 4. No detail – try the generic message field
-  const msg = axiosErr?.response?.data?.message;
-  if (typeof msg === 'string') return msg;
+  const data = axiosErr.response?.data as Record<string, unknown> | undefined;
+  if (typeof data?.message === 'string') return data.message;
 
-  // 5. Network / timeout errors (no response)
-  if (axiosErr?.message && typeof axiosErr.message === 'string') return axiosErr.message;
+  // 5. Axios error message (network / timeout errors)
+  if (typeof axiosErr.message === 'string') return axiosErr.message;
 
-  return fallback;
+  // 6. Last resort
+  try { return JSON.stringify(err); } catch { return fallback; }
+}
+
+function isAxiosError(err: unknown): err is AxiosError {
+  return err != null && typeof err === 'object' && 'isAxiosError' in err;
+}
+
+/**
+ * Extract per-field validation errors from a FastAPI 422 response.
+ * Returns a map of field name → error message.
+ */
+export function extractFieldErrors(err: unknown): Record<string, string> {
+  const axiosErr = err as AxiosError<FastApiErrorResponse> | undefined;
+  const detail = axiosErr?.response?.data?.detail;
+
+  if (!Array.isArray(detail)) return {};
+
+  const fieldErrors: Record<string, string> = {};
+  for (const d of detail) {
+    if (d != null && typeof d === 'object') {
+      const rec = d as unknown as Record<string, unknown>;
+      if (typeof rec.msg === 'string') {
+        const loc = rec.loc as (string | number)[] | undefined;
+        const field = loc && loc.length > 1 ? String(loc[loc.length - 1]) : '';
+        if (field) fieldErrors[field] = rec.msg;
+      }
+    }
+  }
+  return fieldErrors;
 }
 
 api.interceptors.request.use((config) => {

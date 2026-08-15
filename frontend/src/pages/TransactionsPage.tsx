@@ -4,6 +4,15 @@ import { Upload, Search, Plus, Filter, X, Eye, Calendar, Tag } from 'lucide-reac
 import { useState, useMemo } from 'react';
 import type { Transaction, PaginatedResponse } from '../types';
 
+function MutationError({ error }: { error: unknown }) {
+  const msg = extractErrorMessage(error);
+  return (
+    <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm">
+      {msg}
+    </div>
+  );
+}
+
 const CATEGORIES = [
   'Sales Revenue', 'Service Revenue', 'Cost of Goods', 'Rent', 'Utilities',
   'Salaries', 'Marketing', 'Office Supplies', 'Transport', 'Insurance',
@@ -60,6 +69,9 @@ export default function TransactionsPage() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setShowAddForm(false);
       setNewTxn({ txn_date: new Date().toISOString().split('T')[0], description: '', amount: '', counterparty: '', ai_category: '' });
+    },
+    onError: (err) => {
+      console.error('Failed to add transaction:', extractErrorMessage(err));
     },
   });
 
@@ -342,6 +354,7 @@ export default function TransactionsPage() {
               <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
             </div>
             <form onSubmit={e => { e.preventDefault(); addMutation.mutate(newTxn); }} className="space-y-4">
+              {addMutation.isError && <MutationError error={addMutation.error} />}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-400 text-sm mb-1">Date</label>

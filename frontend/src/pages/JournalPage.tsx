@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
+import api, { extractErrorMessage } from '../lib/api';
 import { CheckCircle, Clock } from 'lucide-react';
 import type { JournalEntry, PaginatedResponse } from '../types';
 
@@ -11,6 +11,9 @@ export default function JournalPage() {
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/journal-entries/${id}/approve`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['journal'] }),
+    onError: (err) => {
+      console.error('Failed to approve journal entry:', extractErrorMessage(err));
+    },
   });
 
   return (

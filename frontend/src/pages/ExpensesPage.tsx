@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback, useRef } from 'react';
-import api from '../lib/api';
+import api, { extractErrorMessage } from '../lib/api';
 import { Plus, X, Calendar, Tag, Upload, Camera, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import type { Expense, ExpenseCategory, PaginatedResponse } from '../types';
@@ -63,6 +63,9 @@ export default function ExpensesPage() {
       setShowAddForm(false);
       setNewExpense({ expense_date: new Date().toISOString().split('T')[0], description: '', amount: '', category: '', vendor: '', notes: '' });
     },
+    onError: (err) => {
+      console.error('Failed to add expense:', extractErrorMessage(err));
+    },
   });
 
   const receiptMutation = useMutation({
@@ -74,6 +77,9 @@ export default function ExpensesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       setShowReceiptUpload(false);
+    },
+    onError: (err) => {
+      console.error('Failed to upload receipt:', extractErrorMessage(err));
     },
   });
 
@@ -276,6 +282,11 @@ export default function ExpensesPage() {
               <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
             </div>
             <form onSubmit={e => { e.preventDefault(); addMutation.mutate(newExpense); }} className="space-y-4">
+              {addMutation.isError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm">
+                  {extractErrorMessage(addMutation.error)}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-400 text-sm mb-1">Date</label>

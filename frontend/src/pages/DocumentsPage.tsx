@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
-import api from '../lib/api';
+import api, { extractErrorMessage } from '../lib/api';
 import UploadZone from '../components/UploadZone';
 import FileList from '../components/FileList';
 import AnalysisPipeline from '../components/AnalysisPipeline';
@@ -47,11 +47,17 @@ export default function DocumentsPage() {
       return api.post('/documents/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onError: (err) => {
+      console.error('Failed to upload document:', extractErrorMessage(err));
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/documents/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onError: (err) => {
+      console.error('Failed to delete document:', extractErrorMessage(err));
+    },
   });
 
   const analyzeMutation = useMutation({

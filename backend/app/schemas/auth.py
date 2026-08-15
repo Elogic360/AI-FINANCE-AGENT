@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class RegisterRequest(BaseModel):
@@ -10,6 +10,20 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     business_name: str
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
+    @field_validator("business_name")
+    @classmethod
+    def business_name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Business name cannot be empty")
+        return v.strip()
 
 
 class LoginRequest(BaseModel):

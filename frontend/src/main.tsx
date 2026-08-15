@@ -9,7 +9,14 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000, retry: 1 },
-    mutations: { retry: 0 },
+    mutations: {
+      retry: 0,
+      onError: (err) => {
+        // Global mutation error logger — prevents silent failures.
+        // Individual mutations can still provide their own onError.
+        console.error('[Mutation error]', err);
+      },
+    },
   },
 });
 

@@ -9,9 +9,13 @@ export function useAuth() {
   useEffect(() => {
     const token = localStorage.getItem('finpilot_token');
     if (token) {
-      api.get('/auth/me').then(r => setUser(r.data)).catch(() => {
-        localStorage.removeItem('finpilot_token');
-      }).finally(() => setLoading(false));
+      api.get<User>('/auth/me')
+        .then(r => setUser(r.data))
+        .catch(() => {
+          localStorage.removeItem('finpilot_token');
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
@@ -20,7 +24,7 @@ export function useAuth() {
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post<TokenResponse>('/auth/login', { email, password });
     localStorage.setItem('finpilot_token', res.data.access_token);
-    const me = await api.get('/auth/me');
+    const me = await api.get<User>('/auth/me');
     setUser(me.data);
     return res.data;
   }, []);
@@ -28,7 +32,7 @@ export function useAuth() {
   const register = useCallback(async (email: string, password: string, business_name: string) => {
     const res = await api.post<TokenResponse>('/auth/register', { email, password, business_name });
     localStorage.setItem('finpilot_token', res.data.access_token);
-    const me = await api.get('/auth/me');
+    const me = await api.get<User>('/auth/me');
     setUser(me.data);
     return res.data;
   }, []);

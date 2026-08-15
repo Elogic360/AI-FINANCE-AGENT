@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import api from '../lib/api';
+import api, { extractErrorMessage } from '../lib/api';
 import { Plus, X, Eye, Send, CheckCircle, AlertCircle, FileText, CreditCard, Trash2 } from 'lucide-react';
 import type { Invoice, PaginatedResponse } from '../types';
 
@@ -50,6 +50,9 @@ export default function InvoicesPage() {
       setShowCreateForm(false);
       resetForm();
     },
+    onError: (err) => {
+      console.error('Failed to create invoice:', extractErrorMessage(err));
+    },
   });
 
   const paymentMutation = useMutation({
@@ -61,11 +64,17 @@ export default function InvoicesPage() {
       setPaymentAmount('');
       setPaymentRef('');
     },
+    onError: (err) => {
+      console.error('Failed to record payment:', extractErrorMessage(err));
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/invoices/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+    onError: (err) => {
+      console.error('Failed to delete invoice:', extractErrorMessage(err));
+    },
   });
 
   const resetForm = () => {
@@ -232,6 +241,11 @@ export default function InvoicesPage() {
               <button onClick={() => setShowCreateForm(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
             </div>
             <form onSubmit={e => { e.preventDefault(); createMutation.mutate(newInvoice); }} className="space-y-4">
+              {createMutation.isError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm">
+                  {extractErrorMessage(createMutation.error)}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-400 text-sm mb-1">Customer Name</label>
@@ -416,6 +430,11 @@ export default function InvoicesPage() {
               <button onClick={() => setShowPaymentForm(null)} className="text-gray-400 hover:text-white"><X size={20} /></button>
             </div>
             <form onSubmit={e => { e.preventDefault(); paymentMutation.mutate({ invoiceId: showPaymentForm, amount: paymentAmount, method: paymentMethod, reference: paymentRef }); }} className="space-y-4">
+              {paymentMutation.isError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm">
+                  {extractErrorMessage(paymentMutation.error)}
+                </div>
+              )}
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Amount (TZS)</label>
                 <input type="number" step="0.01" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)}
