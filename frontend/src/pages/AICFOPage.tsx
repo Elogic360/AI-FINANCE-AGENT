@@ -7,23 +7,12 @@ import {
   RotateCcw,
   Globe,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import ChatMessage from '../components/ChatMessage';
 import {
-  fetchSuggestedQuestions,
   streamChatMessage,
   extractErrorMessage,
 } from '../lib/api';
-import type { ChatMessageData, SuggestedQuestion } from '../types';
-
-const DEFAULT_SUGGESTED: SuggestedQuestion[] = [
-  { id: '1', text: 'Why is my profit falling this quarter?', text_sw: 'Kwa nini faida yangu inashuka robo hii?', category: 'analysis' },
-  { id: '2', text: 'Can I afford to hire another employee?', text_sw: 'Je, ninaweza kumudu kuajiri mfanyakazi mwingine?', category: 'planning' },
-  { id: '3', text: 'What are my biggest expenses?', text_sw: 'Gharama zangu kubwa ni zipi?', category: 'analysis' },
-  { id: '4', text: 'How can I improve cash flow?', text_sw: 'Ninawezaje kuboresha mtiririko wa pesa?', category: 'advice' },
-  { id: '5', text: 'Am I at risk of running out of cash?', text_sw: 'Je, niko hatarini kukosa pesa?', category: 'risk' },
-  { id: '6', text: 'Summarize my financial health', text_sw: 'Fupisha hali yangu ya kifedha', category: 'summary' },
-];
+import type { ChatMessageData } from '../types';
 
 export default function AICFOPage() {
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
@@ -34,14 +23,6 @@ export default function AICFOPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<(() => void) | null>(null);
-
-  const { data: suggested } = useQuery<SuggestedQuestion[]>({
-    queryKey: ['suggested-questions'],
-    queryFn: fetchSuggestedQuestions,
-    staleTime: 300_000,
-  });
-
-  const questions = (suggested && suggested.length > 0) ? suggested : DEFAULT_SUGGESTED;
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -129,9 +110,6 @@ export default function AICFOPage() {
     setIsStreaming(false);
   };
 
-  const suggestedText = (q: SuggestedQuestion) =>
-    useSwahili && q.text_sw ? q.text_sw : q.text;
-
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)] max-h-[calc(100vh-7rem)]">
       {/* Header */}
@@ -192,25 +170,12 @@ export default function AICFOPage() {
                   ? 'Niulize chochote kuhusu fedha zako. Niko hapa kukusaidia.'
                   : 'Ask me anything about your finances. I analyze your data to give actionable insights.'}
               </p>
+              <p className="text-gray-600 text-xs mt-3 max-w-md">
+                {useSwahili
+                  ? 'Andika swali lako mwenyewe. AI itatumia tu ujumbe wako wa sasa.'
+                  : 'Type your own question. The AI uses only your current message.'}
+              </p>
             </motion.div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-2xl">
-              {questions.slice(0, 6).map((q, i) => (
-                <motion.button
-                  key={q.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
-                  onClick={() => handleSend(suggestedText(q))}
-                  className="text-left p-3 rounded-lg bg-[#1a1a2e] border border-gray-800 hover:border-cyan-500/30 hover:bg-[#1a2a3e] transition-all group"
-                >
-                  <span className="text-gray-300 text-sm group-hover:text-white transition-colors">
-                    {suggestedText(q)}
-                  </span>
-                  <span className="block text-[10px] text-gray-600 mt-1 capitalize">{q.category}</span>
-                </motion.button>
-              ))}
-            </div>
           </div>
         ) : (
           /* Chat messages */
