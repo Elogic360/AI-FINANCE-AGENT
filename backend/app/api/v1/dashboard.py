@@ -1,10 +1,12 @@
 """Dashboard routes — health score and summary."""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
+from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from pydantic import BaseModel
+from sqlalchemy import select, func, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -16,6 +18,12 @@ from app.models.business import User
 from app.schemas.dashboard import HealthScoreResponse, DashboardSummaryResponse
 
 router = APIRouter()
+
+
+class MonthlyFinancial(BaseModel):
+    month: str
+    revenue: float
+    expenses: float
 
 
 # ---------------------------------------------------------------------------
@@ -203,3 +211,66 @@ async def get_summary(
         overdue_invoices=overdue_invoices,
         active_alerts=active_alerts,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /dashboard/monthly-financials
+# ---------------------------------------------------------------------------
+
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+@router.get("/monthly-financials", response_model=List[MonthlyFinancial])
+async def get_monthly_financials(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return revenue vs expenses by month for the last 6 months."""
+    bid = current_user.business_id
+    today = date.today()
+    results = []
+
+    for i in range(5, -1, -1):
+        # Calculate month offset
+        month = today.month - i
+        year = today.year
+        while month <= 0:
+            month += 12
+            year -= 1
+
+        # Revenue for that month
+        rev = (await db.execute(
+            select(func.coalesce(func.sum(JournalLine.credit - JournalLine.debit), Decimal("0")))
+            .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+            .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+            .where(
+                ChartOfAccounts.business_id == bid,
+                ChartOfAccounts.account_type == "revenue",
+                JournalEntry.is_draft.is_(False),
+                extract("month", JournalEntry.entry_date) == month,
+                extract("year", JournalEntry.entry_date) == year,
+            )
+        )).scalar() or Decimal("0")
+
+        # Expenses for that month
+        exp = (await db.execute(
+            select(func.coalesce(func.sum(JournalLine.debit - JournalLine.credit), Decimal("0")))
+            .join(JournalEntry, JournalEntry.id == JournalLine.journal_entry_id)
+            .join(ChartOfAccounts, ChartOfAccounts.id == JournalLine.account_id)
+            .where(
+                ChartOfAccounts.business_id == bid,
+                ChartOfAccounts.account_type == "expense",
+                JournalEntry.is_draft.is_(False),
+                extract("month", JournalEntry.entry_date) == month,
+                extract("year", JournalEntry.entry_date) == year,
+            )
+        )).scalar() or Decimal("0")
+
+        results.append(MonthlyFinancial(
+            month=MONTH_NAMES[month - 1],
+            revenue=float(rev),
+            expenses=float(exp),
+        ))
+
+    return results
